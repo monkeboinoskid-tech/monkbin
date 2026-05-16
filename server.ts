@@ -112,24 +112,19 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "custom",
-      root: process.cwd(),
+      appType: "spa",
     });
     app.use(vite.middlewares);
     
-    // For SPA, we need to serve index.html for unknown routes but ensure it's transformed by Vite
-    app.use('*', async (req, res, next) => {
+    app.use("*", async (req, res, next) => {
       const url = req.originalUrl;
-      // Skip API and files with extensions (managed by vite.middlewares)
-      if (url.startsWith('/api') || url.includes('.')) {
-        return next();
-      }
+      if (url.startsWith("/api")) return next();
 
       try {
-        const fs = await import('fs');
-        let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        const fs = await import("fs");
+        let template = fs.readFileSync(path.resolve(__dirname, "index.html"), "utf-8");
         template = await vite.transformIndexHtml(url, template);
-        res.status(200).set({ 'Content-Type': 'text/html' }).send(template);
+        res.status(200).set({ "Content-Type": "text/html" }).send(template);
       } catch (e) {
         vite.ssrFixStacktrace(e as Error);
         next(e);
