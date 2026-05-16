@@ -15,6 +15,8 @@ async function startServer() {
 
   app.use(express.json());
 
+  console.log(`Starting server in ${process.env.NODE_ENV || 'development'} mode`);
+
   // Advanced Proxy API to bypass CORS and frame-busting
   app.get("/api/proxy", async (req, res) => {
     const targetUrl = req.query.url as string;
@@ -107,6 +109,19 @@ async function startServer() {
       appType: "spa",
     });
     app.use(vite.middlewares);
+    
+    // For SPA, we need to serve index.html for unknown routes but ensure it's transformed by Vite
+    app.use('*', async (req, res, next) => {
+      const url = req.originalUrl;
+      try {
+        const fs = await import('fs');
+        let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).send(template);
+      } catch (e) {
+        next(e);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
