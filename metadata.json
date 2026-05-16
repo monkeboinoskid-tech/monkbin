@@ -1,0 +1,12 @@
+{
+  "name": "MonkBin",
+  "description": "A high-performance web-based OS with built-in stealth tools, secure browsing, and student resources.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
