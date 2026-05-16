@@ -15,6 +15,12 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Request logger for diagnostic
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+  });
+
   console.log(`Starting server in ${process.env.NODE_ENV || 'development'} mode`);
 
   // Advanced Proxy API to bypass CORS and frame-busting
@@ -106,19 +112,26 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: "custom",
+      root: process.cwd(),
     });
     app.use(vite.middlewares);
     
     // For SPA, we need to serve index.html for unknown routes but ensure it's transformed by Vite
     app.use('*', async (req, res, next) => {
       const url = req.originalUrl;
+      // Skip API and files with extensions (managed by vite.middlewares)
+      if (url.startsWith('/api') || url.includes('.')) {
+        return next();
+      }
+
       try {
         const fs = await import('fs');
         let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(url, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).send(template);
       } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
         next(e);
       }
     });
